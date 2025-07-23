@@ -9,16 +9,20 @@ CORS(app)
 
 # Pre-defined acronyms that could plausibly be either health insurance or RL
 ACRONYMS = [
-    "PPO", "SAC", "HMO", "EPO", "POS", "DDPG", "TRPO",
+    "SAC", "HMO", "EPO", "POS", "DDPG", "TRPO",
     "IPA", "MCO", "ACO", "HSA", "FSA", "MSA", "PPG", "MCTS", "UCB", "MAB",
     "QRL", "IRL", "GAE", "VPG", "NPG", "CEM", "PSO", "RND", "ICM", "NGU"
 ]
 
+# Track game state
+game_counter = 0
+
 @app.route('/')
 def index():
-    # Generate a random acronym for the game
-    acronym = random.choice(ACRONYMS)
-    return render_template('index.html', acronym=acronym)
+    global game_counter
+    game_counter = 0
+    # First acronym is always PPO
+    return render_template('index.html', acronym="PPO")
 
 @app.route('/guess', methods=['POST'])
 def guess():
@@ -41,14 +45,23 @@ def guess():
         'correct_category': correct_category,
         'acronym': acronym,
         'expansion': expansion,
-        'explanation': f"Wrong! {acronym} actually stands for '{expansion}' in {'health insurance' if correct_category == 'health' else 'reinforcement learning'}."
+        'explanation': f"Wrong! {acronym} actually stands for '{expansion}' in {'relation to health insurance' if correct_category == 'health' else 'reinforcement learning'}."
     }
     
     return jsonify(result)
 
 @app.route('/new_game', methods=['POST'])
 def new_game():
-    acronym = random.choice(ACRONYMS)
+    global game_counter
+    game_counter += 1
+    
+    if game_counter == 1:
+        # Second acronym is always MDP
+        acronym = "MDP"
+    else:
+        # After that, random from the list
+        acronym = random.choice(ACRONYMS)
+    
     return jsonify({'acronym': acronym})
 
 def generate_expansion(acronym, category):
@@ -94,7 +107,8 @@ def generate_expansion(acronym, category):
             'PSO': 'Patient Safety Organization',
             'RND': 'Risk and Notification Department',
             'ICM': 'Integrated Care Management',
-            'NGU': 'Network Group Utilization'
+            'NGU': 'Network Group Utilization',
+            'MDP': 'Medical Decision Protocol'
         }
     else:
         fallbacks = {
@@ -124,7 +138,8 @@ def generate_expansion(acronym, category):
             'PSO': 'Particle Swarm Optimization',
             'RND': 'Random Network Distillation',
             'ICM': 'Intrinsic Curiosity Module',
-            'NGU': 'Never Give Up'
+            'NGU': 'Never Give Up',
+            'MDP': 'Markov Decision Process'
         }
     
     return fallbacks.get(acronym, f"Advanced {acronym} Protocol")
