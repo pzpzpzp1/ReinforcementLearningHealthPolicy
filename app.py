@@ -65,20 +65,24 @@ def new_game():
     return jsonify({'acronym': acronym})
 
 def generate_expansion(acronym, category):
-    """Generate plausible expansion using LLaMA backend"""
-    # Use fallbacks directly since LLaMA is likely not set up
-    # try:
-    #     if category == 'health':
-    #         prompt = f"Generate a plausible health insurance related expansion for the acronym '{acronym}'. Only return the expansion, nothing else."
-    #     else:
-    #         prompt = f"Generate a plausible reinforcement learning related expansion for the acronym '{acronym}'. Only return the expansion, nothing else."
-    #     
-    #     # Call LLaMA API (you'll need to set up your LLaMA endpoint)
-    #     response = call_llama_api(prompt)
-    #     return response.strip()
-    #     
-    # except Exception as e:
-    # Fallback expansions
+
+    if acronym not in ["MDP", "PPO"] and False:
+        """Generate plausible expansion using LLaMA backend"""
+        try:
+            acronym_p = ".".join([c for c in acronym])
+            if category == 'health':
+                prompt = f"Generate a plausible health insurance related expansion for the acronym '{acronym_p}'. Only return the expansion, nothing else."
+            else:
+                prompt = f"Generate a plausible reinforcement learning related expansion for the acronym '{acronym_p}'. Only return the expansion, nothing else."
+            
+            # Call LLaMA API (you'll need to set up your LLaMA endpoint)
+            response = call_llama_api(prompt)
+            return response.strip()
+            
+        except Exception as e:
+            pass
+    
+    # Fallback expansions if LLaMA is unavailable or returns generic response
     if category == 'health':
         fallbacks = {
             'PPO': 'Preferred Provider Organization',
@@ -147,21 +151,12 @@ def generate_expansion(acronym, category):
 def call_llama_api(prompt):
     """Call LLaMA API - you'll need to configure this for your setup"""
     # This is a placeholder - replace with your actual LLaMA endpoint
-    try:
-        # Example using ollama local setup
-        response = requests.post('http://localhost:11434/api/generate', 
-                               json={
-                                   'model': 'llama2',
-                                   'prompt': prompt,
-                                   'stream': False
-                               })
-        if response.status_code == 200:
-            return response.json()['response']
-    except:
-        pass
+    from llama_cpp import Llama
+    llm = Llama(model_path="mistral-7b-instruct-v0.1.Q4_0.gguf")
+    response = llm(f"{prompt}", max_tokens=32)
+    result = response["choices"][0]["text"].strip()
+    return result
     
-    # If LLaMA is not available, return a generic response
-    return "Advanced Professional Protocol"
 
 if __name__ == '__main__':
     app.run(debug=True)
