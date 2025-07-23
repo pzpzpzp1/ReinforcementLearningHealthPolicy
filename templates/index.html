@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abbreviation Game</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        
+        .game-container {
+            display: flex;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .left-panel, .right-panel {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 40px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .subtitle {
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .acronym-display {
+            text-align: center;
+            font-size: 4em;
+            font-weight: bold;
+            margin: 40px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            letter-spacing: 5px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .question {
+            text-align: center;
+            font-size: 1.5em;
+            margin: 30px 0;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin: 30px 0;
+        }
+        
+        button {
+            padding: 15px 30px;
+            font-size: 1.2em;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            min-width: 200px;
+        }
+        
+        .health-btn {
+            background: #ff6b6b;
+            color: white;
+        }
+        
+        .rl-btn {
+            background: #4ecdc4;
+            color: white;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        
+        .result.show {
+            opacity: 1;
+        }
+        
+        .left-panel h2 {
+            color: #ff6b6b;
+            margin-bottom: 20px;
+        }
+        
+        .right-panel h2 {
+            color: #4ecdc4;
+            margin-bottom: 20px;
+        }
+        
+        .health-text {
+            color: #ff6b6b;
+        }
+        
+        .rl-text {
+            color: #4ecdc4;
+        }
+        
+        .expansion {
+            font-style: italic;
+            font-size: 1.1em;
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center; margin-bottom: 30px;">Abbreviation Game</h1>
+    <p style="text-align: center; margin-bottom: 40px;" class="subtitle"><span class="rl-text">Reinforcement Learning</span> or <span class="health-text">Health Insurance</span></p>
+    
+    <div class="game-container">
+        <div class="left-panel">
+            <h2>Previous Result</h2>
+            <div class="result" id="result">
+                <div class="expansion" id="expansion"></div>
+                <p id="explanation"></p>
+            </div>
+        </div>
+        
+        <div class="right-panel">
+            <h2>Current Challenge</h2>
+            <div class="acronym-display" id="acronym">{{ acronym }}</div>
+            
+            <div class="question">
+                Where does this abbreviation come from?
+            </div>
+            
+            <div class="buttons">
+                <button class="health-btn" onclick="makeGuess('health')" id="healthBtn">
+                    Health Insurance
+                </button>
+                <button class="rl-btn" onclick="makeGuess('rl')" id="rlBtn">
+                    Reinforcement Learning
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function makeGuess(choice) {
+            const healthBtn = document.getElementById('healthBtn');
+            const rlBtn = document.getElementById('rlBtn');
+            const acronym = document.getElementById('acronym').textContent;
+            
+            // Disable buttons temporarily
+            healthBtn.disabled = true;
+            rlBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/guess', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        choice: choice,
+                        acronym: acronym 
+                    })
+                });
+                
+                const result = await response.json();
+                
+                // Show result in left panel
+                document.getElementById('expansion').textContent = `"${result.expansion}"`;
+                document.getElementById('explanation').textContent = result.explanation;
+                document.getElementById('result').classList.add('show');
+                
+                // Get next acronym and update right panel
+                setTimeout(async () => {
+                    const nextResponse = await fetch('/new_game', { method: 'POST' });
+                    const nextResult = await nextResponse.json();
+                    document.getElementById('acronym').textContent = nextResult.acronym;
+                    
+                    // Re-enable buttons
+                    healthBtn.disabled = false;
+                    rlBtn.disabled = false;
+                }, 1000);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Something went wrong! Please try again.');
+                healthBtn.disabled = false;
+                rlBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
